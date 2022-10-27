@@ -1,8 +1,77 @@
-import { GAME_BOARD_LENGTH, RESULT, SYMBOLS } from '../constants';
+import { GAME_BOARD_LENGTH, RESULT, SYMBOLS, MAX_MOVES, GAME_STATE, POSSIBLE_WIN_MOVES } from '../constants';
 
 export const createEmptyGameBoard = () => {
   return Array(GAME_BOARD_LENGTH).fill("");
 };
+
+export const isDraw = (moveCount) => {
+  return moveCount === MAX_MOVES;
+};
+
+export const checkResult = (gameBoard, moveCount) => {
+  if (isDraw(moveCount)) return {
+    gameState: GAME_STATE.TIE
+  }
+
+  for (let i = 0; i < POSSIBLE_WIN_MOVES.length; i++) {
+    const [x, w, z] = POSSIBLE_WIN_MOVES(i);
+
+    if (gameBoard[x] === SYMBOLS.EMPTY &&
+      gameBoard[z] === SYMBOLS.EMPTY &&
+      gameBoard[y] === SYMBOLS.EMPTY) {
+      continue;
+    }
+
+    if (gameBoard[x] === gameBoard[y] && gameBoard[x] && gameBoard[z]) {
+      let winner = SYMBOLS.COMPUTER;
+
+      if (gameBoard[x] === SYMBOLS.PLAYER) {
+        winner = SYMBOLS.PLAYER;
+      }
+
+      return {
+        gameState: GAME_STATE.WON,
+        winner,
+        winSpaces: [x, w, z]
+      };
+    }
+  }
+  return null;
+}
+
+// Calculate the best move for the computer to fill
+export const calculateComputerTurn = (gameBoard, moveCount) => {
+  let computerSpace = canWin(gameBoard, SYMBOLS.COMPUTER);
+
+  // Computer is winning
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  // Computer is blocking
+  computerSpace = canWin(gameBoard, SYMBOLS.PLAYER)
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  // Computer is blocking fork
+  computerSpace = canBlockFork(gameBoard, moveCount);
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  // Computer can center
+  computerSpace = canFillCenter(gameBoard);
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  // Computer can fill opposite Corner
+  computerSpace = canFillOppositeCorner(gameBoard);
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  // Computer can fill empty corner
+  computerSpace = canFillEmptyCorner(gameBoard);
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  // Computer can fill empty side
+  computerSpace = canFillEmptySide(gameBoard);
+  if (Number.isInteger(computerSpace)) return computerSpace;
+
+  return null;
+}
 
 export const convertCordToGridBoardIndex = (row, col) => {
   return row * 3 + col;
@@ -137,3 +206,110 @@ const canWin = (gameBoard, symbol) => {
   return null;
 }
 
+
+const canBlockFork = (gameBoard, moveCount) => {
+  if (moveCount === 3) {
+    if (
+      gameBoard[convertCordToGridBoardIndex(0, 0)] === SYMBOLS.PLAYER &&
+      gameBoard[convertCordToGridBoardIndex(1, 1)] === SYMBOLS.COMPUTER &&
+      gameBoard[convertCordToGridBoardIndex(2, 2)] === SYMBOLS.PLAYER
+    ) {
+      return canFillEmptySide(gameBoard);
+    }
+
+    if (
+      gameBoard[convertCordToGridBoardIndex(2, 0)] === SYMBOLS.PLAYER &&
+      gameBoard[convertCordToGridBoardIndex(1, 1)] === SYMBOLS.COMPUTER &&
+      gameBoard[convertCordToGridBoardIndex(0, 2)] === SYMBOLS.PLAYER
+    ) {
+      return canFillEmptySide(gameBoard);
+    }
+
+    if (
+      gameBoard[convertCordToGridBoardIndex(1, 2)] === SYMBOLS.PLAYER &&
+      gameBoard[convertCordToGridBoardIndex(2, 1)] === SYMBOLS.PLAYER
+    ) {
+      return convertCordToGridBoardIndex(2, 2);
+    }
+  }
+  return null;
+}
+
+function canFillCenter(gameBoard) {
+  if (gameBoard[convertCordToGridBoardIndex(1, 1)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(1, 1);
+  }
+  return false;
+}
+
+function canFillEmptySide(gameBoard) {
+  if (gameBoard[convertCordToGridBoardIndex(0, 1)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(0, 1);
+  }
+
+  if (gameBoard[convertCordToGridBoardIndex(1, 0)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(1, 0);
+  }
+
+  if (gameBoard[convertCordToGridBoardIndex(1, 2)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(1, 2);
+  }
+
+  if (gameBoard[convertCordToGridBoardIndex(2, 1)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(2, 1);
+  }
+
+  return null;
+}
+
+function canFillEmptyCorner(gameBoard) {
+  if (gameBoard[convertCordToGridBoardIndex(0, 0)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(0, 0);
+  }
+
+  if (gameBoard[convertCordToGridBoardIndex(0, 2)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(0, 2);
+  }
+
+  if (gameBoard[convertCordToGridBoardIndex(2, 0)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(2, 0);
+  }
+
+  if (gameBoard[convertCordToGridBoardIndex(2, 2)] === SYMBOLS.EMPTY) {
+    return convertCordToGridBoardIndex(2, 2);
+  }
+
+  return null;
+}
+
+function canFillOppositeCorner(gameBoard) {
+  if (
+    gameBoard[convertCordToGridBoardIndex(0, 0)] === SYMBOLS.PLAYER &&
+    gameBoard[convertCordToGridBoardIndex(2, 2)] === SYMBOLS.EMPTY
+  ) {
+    return convertCordToGridBoardIndex(2, 2);
+  }
+
+  if (
+    gameBoard[convertCordToGridBoardIndex(2, 2)] === SYMBOLS.PLAYER &&
+    gameBoard[convertCordToGridBoardIndex(0, 0)] === SYMBOLS.EMPTY
+  ) {
+    return convertCordToGridBoardIndex(0, 0);
+  }
+
+  if (
+    gameBoard[convertCordToGridBoardIndex(0, 2)] === SYMBOLS.PLAYER &&
+    gameBoard[convertCordToGridBoardIndex(2, 0)] === SYMBOLS.EMPTY
+  ) {
+    return convertCordToGridBoardIndex(2, 0);
+  }
+
+  if (
+    gameBoard[convertCordToGridBoardIndex(2, 0)] === SYMBOLS.PLAYER &&
+    gameBoard[convertCordToGridBoardIndex(0, 2)] === SYMBOLS.EMPTY
+  ) {
+    return convertCordToGridBoardIndex(0, 2);
+  }
+
+  return null;
+}
