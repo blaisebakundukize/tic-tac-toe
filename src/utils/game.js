@@ -4,25 +4,61 @@ export const createEmptyGameBoard = () => {
   return Array(GAME_BOARD_LENGTH).fill("");
 };
 
+/**
+ * Add a player sign to a board
+ * @param {*} gameBoard 
+ * @param {*} symbol 
+ * @param {*} index 
+ * @returns 
+ */
+export const addSignOnBoard = (gameBoard, symbol, index) => {
+  let firstPartOfBoard = gameBoard.substr(0, index);
+  let lastPartOfBoard = gameBoard.substr(index + 1);
+
+  let newBoard = firstPartOfBoard + symbol + lastPartOfBoard;
+  return newBoard;
+}
+
+/**
+ * Count number of Moves in the game board
+ * @param {string} gameBoard e.g., 'XOX   O  '
+ * @returns number
+ */
+export const countGameBoardMoves = (gameBoard = '') => {
+  return [...gameBoard].filter(c => c === SYMBOLS.COMPUTER || c === SYMBOLS.PLAYER).length;
+}
+
 export const isDraw = (moveCount) => {
   return moveCount === MAX_MOVES;
 };
 
 export const checkResult = (gameBoard, moveCount) => {
+
+  const board = gameBoard.map(symbol => {
+    if (symbol === "") return " ";
+    return symbol
+  }).join("");
+
   if (isDraw(moveCount)) return {
-    gameState: GAME_STATE.TIE
+    gameState: GAME_STATE.TIE,
+    board
   }
 
   for (let i = 0; i < POSSIBLE_WIN_MOVES.length; i++) {
-    const [x, w, z] = POSSIBLE_WIN_MOVES(i);
+    const [x, w, z] = POSSIBLE_WIN_MOVES[i];
+
+    console.log(POSSIBLE_WIN_MOVES[i]);
+    console.log(x, w, z);
+    console.log(gameBoard[x]);
+
 
     if (gameBoard[x] === SYMBOLS.EMPTY &&
-      gameBoard[z] === SYMBOLS.EMPTY &&
-      gameBoard[y] === SYMBOLS.EMPTY) {
+      gameBoard[w] === SYMBOLS.EMPTY &&
+      gameBoard[z] === SYMBOLS.EMPTY) {
       continue;
     }
 
-    if (gameBoard[x] === gameBoard[y] && gameBoard[x] && gameBoard[z]) {
+    if (gameBoard[x] === gameBoard[w] && gameBoard[x] === gameBoard[z]) {
       let winner = SYMBOLS.COMPUTER;
 
       if (gameBoard[x] === SYMBOLS.PLAYER) {
@@ -32,43 +68,60 @@ export const checkResult = (gameBoard, moveCount) => {
       return {
         gameState: GAME_STATE.WON,
         winner,
+        board,
         winSpaces: [x, w, z]
       };
     }
   }
-  return null;
+  return {
+    gameState: GAME_STATE.INCOMPLETE,
+    board
+  };
 }
 
 // Calculate the best move for the computer to fill
 export const calculateComputerTurn = (gameBoard, moveCount) => {
   let computerSpace = canWin(gameBoard, SYMBOLS.COMPUTER);
+  console.log('passed Can Win')
 
   // Computer is winning
   if (Number.isInteger(computerSpace)) return computerSpace;
 
   // Computer is blocking
   computerSpace = canWin(gameBoard, SYMBOLS.PLAYER)
+  console.log(gameBoard);
   if (Number.isInteger(computerSpace)) return computerSpace;
+  console.log('passed Can Win')
 
   // Computer is blocking fork
   computerSpace = canBlockFork(gameBoard, moveCount);
   if (Number.isInteger(computerSpace)) return computerSpace;
 
+  console.log('passed Can block fork')
+
   // Computer can center
   computerSpace = canFillCenter(gameBoard);
   if (Number.isInteger(computerSpace)) return computerSpace;
+
+  console.log('passed Can fill center')
 
   // Computer can fill opposite Corner
   computerSpace = canFillOppositeCorner(gameBoard);
   if (Number.isInteger(computerSpace)) return computerSpace;
 
+  console.log('passed Can fill opposite corner')
+
   // Computer can fill empty corner
   computerSpace = canFillEmptyCorner(gameBoard);
   if (Number.isInteger(computerSpace)) return computerSpace;
 
+  console.log('passed Can fill empty corner')
+
   // Computer can fill empty side
   computerSpace = canFillEmptySide(gameBoard);
   if (Number.isInteger(computerSpace)) return computerSpace;
+
+  console.log('passed Can fill empty side')
 
   return null;
 }
@@ -80,15 +133,16 @@ export const convertCordToGridBoardIndex = (row, col) => {
 const rowGetThirdIndexToWin = (gameBoard, symbol) => {
   let count = 0, nextIndexToWin = null;
   let row, col;
-
+  // console.log('row get third index to win', gameBoard)
   // Check rows
   for (let i = 0; i < 3; i++) {
     count = 0;
 
     for (let j = 0; j < 3; j++) {
-      if (gameBoard(convertCordToGridBoardIndex(i, j)) === symbol) {
+      if (gameBoard[convertCordToGridBoardIndex(i, j)] === symbol) {
         count++;
-      } else if (gameBoard(convertCordToGridBoardIndex(i, j)) === SYMBOLS.EMPTY) {
+      } else if (gameBoard[convertCordToGridBoardIndex(i, j)] === SYMBOLS.EMPTY) {
+        // console.log('row get third index to win', gameBoard)
         row = i;
         col = j;
       } else {
@@ -103,6 +157,8 @@ const rowGetThirdIndexToWin = (gameBoard, symbol) => {
     }
   }
 
+  // console.log('row get third index to win', gameBoard)
+
   return nextIndexToWin;
 }
 
@@ -115,15 +171,17 @@ const columnGetThirdIndexToWin = (gameBoard, symbol) => {
     count = 0;
 
     for (let j = 0; j < 3; j++) {
-      if (gameBoard(convertCordToGridBoardIndex(j, i)) === symbol) {
+      if (gameBoard[convertCordToGridBoardIndex(j, i)] === symbol) {
         count++;
-      } else if (gameBoard(convertCordToGridBoardIndex(j, i)) === SYMBOLS.EMPTY) {
+      } else if (gameBoard[convertCordToGridBoardIndex(j, i)] === SYMBOLS.EMPTY) {
         row = i;
         col = j;
       } else {
         count--;
       }
     }
+
+    console.log("Row Col: ", row, col, symbol);
 
     // Third index to win if has two consecutive symbols on column
     if (count === 2) {
@@ -193,10 +251,12 @@ const canWin = (gameBoard, symbol) => {
 
   // Check cols
   const columnThirdIndexToWin = columnGetThirdIndexToWin(gameBoard, symbol)
+  console.log('Col third index to win: ', columnThirdIndexToWin)
   if (columnThirdIndexToWin) return columnThirdIndexToWin;
 
   // check left diag
   const leftDiagThirdIndexToWin = leftDiagGetThirdIndexToWin(gameBoard, symbol);
+  console.log('left third index to win: ', leftDiagThirdIndexToWin)
   if (leftDiagThirdIndexToWin) return leftDiagThirdIndexToWin;
 
   // check right diag
