@@ -33,7 +33,7 @@ export const calculatePlayerMove = (req, res, next) => {
 export const calculateComputerMove = (req, res, next) => {
   let { board } = req.query;
   let gameResult = req.gameResult;
-  console.log('board after player: ', board)
+
   let isComputerMadeFirstMove = false;
   const countedMoves = countGameBoardMoves(board) || 0;
   // Computer starts the game if no board
@@ -41,19 +41,18 @@ export const calculateComputerMove = (req, res, next) => {
     board = createEmptyGameBoard();
     isComputerMadeFirstMove = true;
   }
-
-  if (gameResult && gameResult.gameState === GAME_STATE.INCOMPLETE) {
-    console.log('countedMoves: ', gameResult)
+  console.log('board after player: ', board)
+  if (gameResult && gameResult.gameState === GAME_STATE.INCOMPLETE || isComputerMadeFirstMove) {
+    // console.log('countedMoves: ', gameResult)
     const computerSpace = calculateComputerTurn(board, countedMoves);
     board[computerSpace] = SYMBOLS.COMPUTER;
 
     console.log('board: ', board, isComputerMadeFirstMove, countedMoves, 'index space: ', computerSpace)
 
-    if (isComputerMadeFirstMove) {
-      req.query.board = board;
-      req.isComputerMadeFirstMove = isComputerMadeFirstMove;
-      next();
-    }
+    // if (isComputerMadeFirstMove) {
+    //   req.query.board = board;
+    //   req.isComputerMadeFirstMove = isComputerMadeFirstMove;
+    // }
     // check result after computer plays
     const result = checkResult(board, countedMoves);
     req.gameResult = result;
